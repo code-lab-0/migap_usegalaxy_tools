@@ -38,7 +38,7 @@ sub main {
     $pref{'GW_DATA_DIR'} = "/home/$pref{'USER'}/gw_dir/$CONTAINER_ID";
     $pref{'GW'} = '172.19.24.113';
 
-    $pref{'SCRIPT_PREFIX'} = 'cog-search';
+    $pref{'SCRIPT_PREFIX'} = 'trembl-search';
     $pref{'SPRIT_SEQ_NUM'} = 50;
     $pref{'THREAD_NUM'} = 4;
     $pref{'IMG'} = 'yookuda/blast_plus';
