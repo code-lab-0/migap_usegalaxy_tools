@@ -144,7 +144,7 @@ sub create_remote_command_script {
     my $total_file_count = $_[1];
     my $pref_ref = $_[2];
 
-    my $OUTPUT = $$pref_ref{'INPUT'};
+    my $INPUT = $$pref_ref{'INPUT'};
     my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
     my $script = "${INPUT}.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
     my $REMOTE_DATA_DIR = $$pref_ref{'REMOTE_DATA_DIR'};
