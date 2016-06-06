@@ -1,0 +1,27 @@
+<tool id="migap_1" name="MetaGeneAnotator" version="0.1.0">
+  <description>find ORFs</description>
+  <command interpreter="bash">mga.sh $input $output $option</command>
+  <inputs>
+    <param format="fasta" name="input" type="data" label="Contig Sequence" />
+    <param name="option" type="select" label="Multi-fasta option" display="radio">
+      <option value="-m">multiple species (sequences are individually treated)</option>
+      <option value="-s" selected="True">single species (sequences are treated as a unit)</option>
+    </param>
+  </inputs>
+  <outputs>
+    <data format="tabular" name="output" label="${tool.name} Result" />
+  </outputs>
+
+  <tests>
+    <test>
+      <param name="input" value="fa_gc_content_input.fa"/>
+      <output name="output" file="fa_gc_content_output.txt"/>
+    </test>
+  </tests>
+
+  <help>
+http://metagene.nig.ac.jp/
+  </help>
+
+</tool>
+

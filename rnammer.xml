@@ -1,0 +1,37 @@
+<tool id="migap_3" name="RNAmmer 1.2" version="0.1.0">
+  <description>find rRNAs</description>
+  <command interpreter="bash">
+    rnammer.sh $input $output
+    -S $optS
+    -m $optM
+  </command>
+  <inputs>
+    <param format="fasta" name="input" type="data" label="Contig Sequence" />
+    <param name="optS" type="select" display="radio" label="Kingdom">
+      <option value="arc">archaea</option>
+      <option value="bac" selected="True">bacteria</option>
+      <option value="euk">eukaryote</option>
+      <validator type="no_options" message="You must pick at a kingdom." />
+    </param>
+    <param name="optM" type="select" display="checkboxes" multiple="true" label="Molecule">
+      <option value="lsu" selected="True">23/28s rRNA</option>
+      <option value="ssu" selected="True">16/18s rRNA</option>
+      <option value="tsu" selected="True">5/8s rRNA</option>
+    </param>
+  </inputs>
+  <outputs>
+    <data format="gff" name="output" label="${tool.name} Result" />
+  </outputs>
+
+  <tests>
+    <test>
+      <param name="input" value="fa_gc_content_input.fa"/>
+      <output name="output" file="fa_gc_content_output.txt"/>
+    </test>
+  </tests>
+
+  <help>
+http://www.cbs.dtu.dk/cgi-bin/nph-runsafe?man=rnammer
+  </help>
+
+</tool>

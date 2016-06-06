@@ -1,0 +1,42 @@
+<tool id="migap_2" name="tRNAscan-SE 1.23" version="0.1.0">
+  <description>find tRNAs</description>
+  <command interpreter="bash">
+    trnascan-se.sh $input $output
+    $optModel
+    #if $optC.value:
+    -C
+    #end if
+    #if $optH.value:
+    -H
+    #end if
+  </command>
+  <inputs>
+    <param format="fasta" name="input" type="data" label="Contig Sequence" />
+    <param name="optModel" type="select" display="radio" label="Model">
+      <option value="">eukaryotic</option>
+      <option value="-B" selected="True">bacterial</option>
+      <option value="-A">archaeal</option>
+      <option value="-O">mitochondrial/chloroplast</option>
+      <option value="-G">general (cytoplasmic tRNAs from all 3 domains included)</option>
+      <validator type="no_options" message="You must pick at a model." />
+    </param>
+    <param name="optC" type="boolean" label="search using Cove analysis only (max sensitivity, very slow)"/>
+    <param name="optH" type="boolean" label="show both primary and secondary structure components to covariance model bit scores"/>
+  </inputs>
+  <outputs>
+    <data format="tabular" name="output" label="${tool.name} Result" />
+  </outputs>
+
+  <tests>
+    <test>
+      <param name="input" value="fa_gc_content_input.fa"/>
+      <output name="output" file="fa_gc_content_output.txt"/>
+    </test>
+  </tests>
+
+  <help>
+http://lowelab.ucsc.edu/tRNAscan-SE/
+  </help>
+
+</tool>
+

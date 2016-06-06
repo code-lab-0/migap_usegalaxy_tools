@@ -1,0 +1,27 @@
+<tool id="migap_8" name="Unannotated" version="0.1.0">
+  <description>Extract not annotated sequences</description>
+  <command interpreter="bash">fa4tr.sh $input1 $input2 $input3 $output1</command>
+  <inputs>
+    <param format="fasta" name="input1" label="CDS AA Sequence" type="data" />
+    <param format="tabular" name="input2" label="COG Search Result" type="data" />
+    <param format="tabular" name="input3" label="Refseq Search Result" type="data" />
+  </inputs>
+  <outputs>
+    <data format="fasta" name="output1" label="${tool.name} Result" />
+  </outputs>
+
+  <tests>
+    <test>
+      <param name="input1" value="fa_gc_content_input1.fa"/>
+      <param name="input2" value="fa_gc_content_input2.fa"/>
+      <param name="input3" value="fa_gc_content_input3.fa"/>
+      <output name="output" file="fa_gc_content_output.txt"/>
+    </test>
+  </tests>
+
+  <help>
+Next, map this result to TrEMBL.
+  </help>
+
+</tool>
+

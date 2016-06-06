@@ -1,0 +1,41 @@
+<tool id="migap_10" name="Merge(final)" version="0.1.0">
+  <description>Output final reports</description>
+  <command interpreter="bash">
+    merge-a.sh
+      $input1 $input2 $input3 $input4 $input5 $input6 $input7
+      $output1 $output2 $output3 $output4 $output5
+  </command>
+  <inputs>
+    <param format="tabular" name="input1" label="COG Search Result" type="data" />
+    <param format="tabular" name="input2" label="TrEMBL Search Result" type="data" />
+    <param format="tabular" name="input3" label="Refseq Search Result" type="data" />
+    <param format="genbank" name="input4" label="Interim Genbank" type="data" />
+    <param format="embl" name="input5" label="Interim Embl" type="data" />
+    <param format="tabular" name="input6" label="Interim Annt" type="data" />
+    <param format="csv" name="input7" label="Interim Csv" type="data" />
+  </inputs>
+  <outputs>
+    <data format="genbank" name="output1" label="Final Genbank" />
+    <data format="embl" name="output2" label="Final Embl" />
+    <data format="tabular" name="output3" label="Final Annt" />
+    <data format="csv" name="output4" label="Final Csv" />
+    <data format="genbank" name="output5" label="Final Ddbj" />
+  </outputs>
+
+  <tests>
+    <test>
+      <param name="input1" value="fa_gc_content_input1.fa"/>
+      <param name="input2" value="fa_gc_content_input2.fa"/>
+      <param name="input3" value="fa_gc_content_input3.fa"/>
+      <param name="input4" value="fa_gc_content_input4.fa"/>
+      <param name="input5" value="fa_gc_content_input4.fa"/>
+      <output name="output" file="fa_gc_content_output.txt"/>
+    </test>
+  </tests>
+
+  <help>
+Output final reports
+  </help>
+
+</tool>
+

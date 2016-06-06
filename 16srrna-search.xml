@@ -1,0 +1,27 @@
+<tool id="migap_4" name="16S rRNA Search" version="0.1.0">
+  <description>Similarity Search</description>
+  <command interpreter="bash">
+    16srrna-search.sh $input $output -num_descriptions $numdesc -num_alignments $numali -evalue $evalue
+  </command>
+  <inputs>
+    <param format="fasta" name="input" type="data" label="Contig Sequence" />
+    <param name="numdesc" label="Number of descriptions (-num_descriptions)" value="1" type="integer"/>
+    <param name="numali" label="Number of alignments (-num_alignments)" value="1" type="integer"/>
+    <param name="evalue" label="Expectation value cutoff (-evalue)" value="1e-20" type="float"/>
+  </inputs>
+  <outputs>
+    <data format="tabular" name="output" label="${tool.name} Result" />
+  </outputs>
+
+  <tests>
+    <test>
+      <param name="input" value="fa_gc_content_input.fa"/>
+      <output name="output" file="fa_gc_content_output.txt"/>
+    </test>
+  </tests>
+
+  <help>
+16S rRNA Search
+  </help>
+
+</tool>
