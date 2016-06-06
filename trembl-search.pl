@@ -144,9 +144,9 @@ sub create_remote_command_script {
     my $total_file_count = $_[1];
     my $pref_ref = $_[2];
 
-    my $OUTPUT = $$pref_ref{'OUTPUT'};
+    my $OUTPUT = $$pref_ref{'INPUT'};
     my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
-    my $script = "${OUTPUT}.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
+    my $script = "${INPUT}.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
     my $REMOTE_DATA_DIR = $$pref_ref{'REMOTE_DATA_DIR'};
     my $REMOTE_BLAST_DB_DIR = $$pref_ref{'REMOTE_BLAST_DB_DIR'};
     my $IMG = $$pref_ref{'IMG'};
@@ -199,7 +199,7 @@ sub scp_files {
     my $input_file;
 
     while ($i <= $total_file_count) {
-        $script = "$OUTPUT.$SCRIPT_PREFIX.${i}_${total_file_count}.sh";
+        $script = "$INPUT.$SCRIPT_PREFIX.${i}_${total_file_count}.sh";
         $input_file = "$INPUT.${SCRIPT_PREFIX}_${i}_${total_file_count}";
 
         # copy remote command script
@@ -247,14 +247,14 @@ sub post_job {
     my $pref_ref = $_[2];
 
     my $REMOTE_DATA_DIR = $$pref_ref{'REMOTE_DATA_DIR'};
-    my $OUTPUT_FNAME = $$pref_ref{'OUTPUT_FNAME'};
+    my $INPUT_FNAME = $$pref_ref{'INPUT_FNAME'};
     my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
     my $GW = $$pref_ref{'GW'};
     my $THREAD_NUM = $$pref_ref{'THREAD_NUM'};
     my $USER = $$pref_ref{'USER'};
     my $PW = $$pref_ref{'PW'};
 
-    my $script = "$REMOTE_DATA_DIR/$OUTPUT_FNAME.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
+    my $script = "$REMOTE_DATA_DIR/$INPUT_FNAME.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
     my $cmd = "curl -s -X POST -H 'Content-Type:application/json' http://$GW:8182/jobs -d '{\"remoteCommand\":\"$script\", \"args\":[], \"nativeSpecification\":\"-pe def_slot $THREAD_NUM\"}' -u $USER:$PW";
     my $stdout_buf = &check_cmd_result($cmd, "post job $file_count");
 

@@ -5,50 +5,55 @@ use warnings;
 use JSON qw/decode_json/;
 use IPC::Cmd qw/can_run run run_forked/;
 
-my $INPUT = shift @ARGV;
-my $OUTPUT = shift @ARGV;
-my $USER = shift @ARGV;
-my $PW = shift @ARGV;
-my $OPTIONS = join(" ", @ARGV);
-
-my $CONTAINER_ID = `cat /proc/1/cpuset`;
-chomp $CONTAINER_ID;
-$CONTAINER_ID =~ s/.*\///;
-
-my $DATA_DIR = $INPUT;
-my $INPUT_FNAME = $INPUT;
-$INPUT_FNAME =~ s/.*\///;
-
-my $REMOTE_BLAST_DB_DIR = "/home/okuda/data/db/cog/20030417";
-my $BLAST_DB = "myva";
-my $REMOTE_DATA_DIR = "/home/$USER/gw_dir/$CONTAINER_ID";
-
-my $GW_DATA_DIR = "/home/$USER/gw_dir/$CONTAINER_ID";
-my $GW = "172.19.24.113";
-
-my $OUTPUT_FNAME = $OUTPUT;
-$OUTPUT_FNAME =~ s/.*\///;
-
-my $SCRIPT_PREFIX = 'cog-search';
-my $SPRIT_SEQ_NUM = 1000;
-my $THREAD_NUM = 4;
-my $IMG = "yookuda/blast_plus";
-
 &main;
 exit;
 
 sub main {
+    my %pref = ();
+    my $pref_ref = \%pref;
+
+    $pref{'INPUT'} = shift @ARGV;
+    $pref{'OUTPUT'} = shift @ARGV;
+    $pref{'USER'} = shift @ARGV;
+    $pref{'PW'} = shift @ARGV;
+    $pref{'OPTIONS'} = join(" ", @ARGV);
+
+    my $CONTAINER_ID = `cat /proc/1/cpuset`;
+    chomp $CONTAINER_ID;
+    $CONTAINER_ID =~ s/.*\///;
+    $pref{'CONTAINER_ID'} = $CONTAINER_ID;
+    
+    my $INPUT_FNAME = $pref{'INPUT'};
+    $INPUT_FNAME =~ s/.*\///;
+    $pref{'INPUT_FNAME'} = $INPUT_FNAME;
+
+    my $OUTPUT_FNAME = $pref{'OUTPUT'};
+    $OUTPUT_FNAME =~ s/.*\///;
+    $pref{'OUTPUT_FNAME'} = $OUTPUT_FNAME;
+
+    $pref{'REMOTE_BLAST_DB_DIR'} = '/home/okuda/data/db/cog/20030417';
+    $pref{'BLAST_DB'} = 'myva';
+    $pref{'REMOTE_DATA_DIR'} = "/home/$pref{'USER'}/gw_dir/$CONTAINER_ID";
+
+    $pref{'GW_DATA_DIR'} = "/home/$pref{'USER'}/gw_dir/$CONTAINER_ID";
+    $pref{'GW'} = '172.19.24.113';
+
+    $pref{'SCRIPT_PREFIX'} = 'cog-search';
+    $pref{'SPRIT_SEQ_NUM'} = 1000;
+    $pref{'THREAD_NUM'} = 4;
+    $pref{'IMG'} = 'yookuda/blast_plus';
+
     # split fasta file
-    my ($file_count, $total_file_count) = &split_fasta_file;
+    my ($file_count, $total_file_count) = &split_fasta_file($pref_ref);
 
     # copy files to UGE cluster
-    &scp_files($total_file_count);
+    &scp_files($total_file_count, $pref_ref);
 
     # post job
     my $i = 0;
     my @job_ids = ();
     while ($i <= $total_file_count) {
-        my $job_id = &post_job($i, $total_file_count);
+        my $job_id = &post_job($i, $total_file_count, $pref_ref);
         if ($job_id =~ /^\d+$/) {
             push @job_ids, $job_id;
         }
@@ -59,17 +64,11 @@ sub main {
     my $job_state = 1;
     while ($job_state) {
         sleep(60);
-        $job_state = &check_job_state(\@job_ids);
+        $job_state = &check_job_state(\@job_ids, $pref_ref);
     }
 
     # copy files from UGE cluster
-    my $j = 0;
-    while ($j <= $total_file_count) {
-        my $cmd = "sh -c \"sshpass -p '$PW' scp -o StrictHostKeyChecking=no $USER\@$GW:$GW_DATA_DIR/$OUTPUT_FNAME.$j $OUTPUT.$j\"";
-        &check_cmd_result($cmd, "copy result file $j");
-        `cat $OUTPUT.$j >> $OUTPUT`;
-        ++$j;
-    }
+    &get_result($total_file_count, $pref_ref);
 
 #    &remove_files($total_file_count);
 }
@@ -93,6 +92,11 @@ sub check_cmd_result {
 
 # split fasta file
 sub split_fasta_file {
+    my $pref_ref = $_[0];
+    my $INPUT = $$pref_ref{'INPUT'};
+    my $SPRIT_SEQ_NUM = $$pref_ref{'SPRIT_SEQ_NUM'};
+    my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
+
     my $seq_count = 0;
     my $file_count = 0;
     my $total_file_count = 0;
@@ -113,7 +117,7 @@ sub split_fasta_file {
     open DATA, $INPUT or die;
     open OUT, ">$INPUT.${SCRIPT_PREFIX}_${file_count}_${total_file_count}" or die;
 
-    &create_remote_command_script($file_count, $total_file_count);
+    &create_remote_command_script($file_count, $total_file_count, $pref_ref);
 
     while (<DATA>) {
         if (/^>/) {
@@ -124,7 +128,7 @@ sub split_fasta_file {
                 $seq_count = 0;
                 open OUT, ">$INPUT.${SCRIPT_PREFIX}_${file_count}_${total_file_count}" or die;
 
-                &create_remote_command_script($file_count, $total_file_count);
+                &create_remote_command_script($file_count, $total_file_count, $pref_ref);
 
             }
         }
@@ -138,7 +142,19 @@ sub split_fasta_file {
 sub create_remote_command_script {
     my $file_count = $_[0];
     my $total_file_count = $_[1];
-    my $script = "${OUTPUT}.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
+    my $pref_ref = $_[2];
+
+    my $OUTPUT = $$pref_ref{'OUTPUT'};
+    my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
+    my $script = "${INPUT}.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
+    my $REMOTE_DATA_DIR = $$pref_ref{'REMOTE_DATA_DIR'};
+    my $REMOTE_BLAST_DB_DIR = $$pref_ref{'REMOTE_BLAST_DB_DIR'};
+    my $IMG = $$pref_ref{'IMG'};
+    my $BLAST_DB = $$pref_ref{'BLAST_DB'};
+    my $INPUT_FNAME = $$pref_ref{'INPUT_FNAME'};
+    my $OUTPUT_FNAME = $$pref_ref{'OUTPUT_FNAME'};
+    my $OPTIONS = $$pref_ref{'OPTIONS'};
+    my $THREAD_NUM = $$pref_ref{'THREAD_NUM'};
 
     open SCRIPT, ">$script" or die;
 
@@ -163,6 +179,14 @@ sub create_remote_command_script {
 
 sub scp_files {
     my $total_file_count = $_[0];
+    my $pref_ref = $_[1];
+
+    my $PW = $$pref_ref{'PW'};
+    my $USER = $$pref_ref{'USER'};
+    my $GW = $$pref_ref{'GW'};
+    my $GW_DATA_DIR = $$pref_ref{'GW_DATA_DIR'};
+    my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
+    my $INPUT = $$pref_ref{'INPUT'};
 
     # create gateway data directory
     my $cmd1 = "sh -c \"sshpass -p '$PW' ssh -o StrictHostKeyChecking=no $USER\@$GW 'if [ ! -e $GW_DATA_DIR ]; then mkdir -p $GW_DATA_DIR ; fi'\"";
@@ -174,7 +198,7 @@ sub scp_files {
     my $input_file;
 
     while ($i <= $total_file_count) {
-        $script = "$OUTPUT.$SCRIPT_PREFIX.${i}_${total_file_count}.sh";
+        $script = "$INPUT.$SCRIPT_PREFIX.${i}_${total_file_count}.sh";
         $input_file = "$INPUT.${SCRIPT_PREFIX}_${i}_${total_file_count}";
 
         # copy remote command script
@@ -219,8 +243,17 @@ sub remove_files {
 sub post_job {
     my $file_count = $_[0];
     my $total_file_count = $_[1];
+    my $pref_ref = $_[2];
 
-    my $script = "$REMOTE_DATA_DIR/$OUTPUT_FNAME.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
+    my $REMOTE_DATA_DIR = $$pref_ref{'REMOTE_DATA_DIR'};
+    my $INPUT_FNAME = $$pref_ref{'INPUT_FNAME'};
+    my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
+    my $GW = $$pref_ref{'GW'};
+    my $THREAD_NUM = $$pref_ref{'THREAD_NUM'};
+    my $USER = $$pref_ref{'USER'};
+    my $PW = $$pref_ref{'PW'};
+
+    my $script = "$REMOTE_DATA_DIR/$INPUT_FNAME.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
     my $cmd = "curl -s -X POST -H 'Content-Type:application/json' http://$GW:8182/jobs -d '{\"remoteCommand\":\"$script\", \"args\":[], \"nativeSpecification\":\"-pe def_slot $THREAD_NUM\"}' -u $USER:$PW";
     my $stdout_buf = &check_cmd_result($cmd, "post job $file_count");
 
@@ -238,6 +271,11 @@ sub post_job {
 sub check_job_state {
     my $job_ids = $_[0];
     my @job_ids = @$job_ids;
+    my $pref_ref = $_[1];
+
+    my $GW = $$pref_ref{'GW'};
+    my $USER = $$pref_ref{'USER'};
+    my $PW = $$pref_ref{'PW'};
 
     my $cmd = "curl -s -X GET -H 'Content-Type: application/json' http://$GW:8182/jobs -u $USER:$PW";
 
@@ -270,3 +308,24 @@ sub check_job_state {
     return 0;
 }
 
+
+# copy files from UGE cluster
+sub get_result {
+    my $total_file_count = $_[0];
+    my $pref_ref = $_[1];
+
+    my $USER = $$pref_ref{'USER'};
+    my $PW = $$pref_ref{'PW'};
+    my $GW = $$pref_ref{'GW'};
+    my $GW_DATA_DIR = $$pref_ref{'GW_DATA_DIR'};
+    my $OUTPUT_FNAME = $$pref_ref{'OUTPUT_FNAME'};
+    my $OUTPUT = $$pref_ref{'OUTPUT'};
+
+    my $i = 0;
+    while ($i <= $total_file_count) {
+        my $cmd = "sh -c \"sshpass -p '$PW' scp -o StrictHostKeyChecking=no $USER\@$GW:$GW_DATA_DIR/$OUTPUT_FNAME.$i $OUTPUT.$i\"";
+        &check_cmd_result($cmd, "copy result file $i");
+        `cat $OUTPUT.$i >> $OUTPUT`;
+        ++$i;
+    }
+}
