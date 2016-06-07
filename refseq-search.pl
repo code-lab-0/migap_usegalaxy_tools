@@ -9,7 +9,7 @@ use IPC::Cmd qw/can_run run run_forked/;
 exit;
 
 sub main {
-    my $pref_ref = &get_pref;
+    my $pref_ref = &set_pref;
 
     # split fasta file and create job scripts.
     my $total_file_count = &split_fasta_file($pref_ref);
@@ -34,7 +34,7 @@ sub main {
 }
 
 # 定数の設定
-sub get_pref {
+sub set_pref {
     my %pref = ();
     my $pref_ref = \%pref;
 
