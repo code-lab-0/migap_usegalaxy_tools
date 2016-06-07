@@ -1,0 +1,40 @@
+<tool id="migap_5" name="Report(interim)" version="0.1.0">
+  <description>Output interim reports</description>
+  <command interpreter="bash">
+    merge.sh
+      $input1 $input2 $input3 $input4 $input5
+      $output1 $output2 $output3 $output4 $output5 $output6 $output7
+  </command>
+  <inputs>
+    <param format="fasta" name="input1" label="Contig Sequence" type="data" />
+    <param format="tabular" name="input2" label="MetaGeneAnnotator Result" type="data" />
+    <param format="tabular" name="input3" label="tRNAscan-SE Result" type="data" />
+    <param format="gff" name="input4" label="RNAmmer Result" type="data" />
+    <param format="tabular" name="input5" label="16s rRNA Search Result" type="data" />
+  </inputs>
+  <outputs>
+    <data format="fasta" name="output1" label="CDS NA Sequence" />
+    <data format="fasta" name="output2" label="CDS AA Sequence" />
+    <data format="tabular" name="output3" label="Interim Annt"/>
+    <data format="csv" name="output4" label="Interim Csv" />
+    <data format="embl" name="output5" label="Interim Embl" />
+    <data format="genbank" name="output6" label="Interim Genbank" />
+    <data format="genbank" name="output7" label="Interim GFF" />
+  </outputs>
+
+  <tests>
+    <test>
+      <param name="input1" value="fa_gc_content_input1.fa"/>
+      <param name="input2" value="fa_gc_content_input2.fa"/>
+      <param name="input3" value="fa_gc_content_input3.fa"/>
+      <param name="input4" value="fa_gc_content_input4.fa"/>
+      <param name="input5" value="fa_gc_content_input4.fa"/>
+      <output name="output" file="fa_gc_content_output.txt"/>
+    </test>
+  </tests>
+
+  <help>
+Output interim reports
+  </help>
+
+</tool>
