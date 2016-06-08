@@ -8,7 +8,7 @@ CONTAINER_ID="${CONTAINER_ID##*/}"
 
 IMG="yookuda/rnammer-1.2:1.0"
 
-docker run \
+/bin/docker run \
     --volumes-from $CONTAINER_ID \
     --rm \
     $IMG \

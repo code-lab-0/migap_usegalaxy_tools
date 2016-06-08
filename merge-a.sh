@@ -24,7 +24,6 @@ shift
 OUTPUT5=$1
 shift
 
-#SCRIPTS_DIR="/home/okuda/data/scripts"
 COG_DB_DIR="/home/okuda/data/db/cog/20030417"
 REFSEQ_DB_DIR="/home/okuda/data/db/refseq_protein/20140911"
 
@@ -35,32 +34,15 @@ GPFF="microbial.*.protein.gpff.gz"
 
 IMG="yookuda/merge_a"
 
-#INPUT_FNAME1="${INPUT1##*/}"
-#INPUT_FNAME2="${INPUT2##*/}"
-#INPUT_FNAME3="${INPUT3##*/}"
-#INPUT_FNAME4="${INPUT4##*/}"
-#INPUT_FNAME5="${INPUT5##*/}"
-#INPUT_FNAME6="${INPUT6##*/}"
-#INPUT_FNAME7="${INPUT7##*/}"
-#DATA_DIR_TMP="${INPUT1%/*}"
-
 CONTAINER_ID=`cat /proc/1/cpuset`
 CONTAINER_ID="${CONTAINER_ID##*/}"
-
-#DATA_DIR="/tmp/files/${CONTAINER_ID}/${DATA_DIR_TMP##*/}"
-
-#OUTPUT_FNAME1="${OUTPUT1##*/}"
-#OUTPUT_FNAME2="${OUTPUT2##*/}"
-#OUTPUT_FNAME3="${OUTPUT3##*/}"
-#OUTPUT_FNAME4="${OUTPUT4##*/}"
-#OUTPUT_FNAME5="${OUTPUT5##*/}"
 
 cp $INPUT4 ${OUTPUT1}.gbk
 cp $INPUT5 ${OUTPUT1}.embl
 cp $INPUT6 ${OUTPUT1}.annt
 cp $INPUT7 ${OUTPUT1}.csv
 
-docker run \
+/bin/docker run \
     --volumes-from $CONTAINER_ID \
     -v $COG_DB_DIR:/cog \
     -v $REFSEQ_DB_DIR:/refseq \

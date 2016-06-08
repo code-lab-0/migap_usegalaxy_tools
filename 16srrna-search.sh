@@ -10,7 +10,7 @@ CONTAINER_ID="${CONTAINER_ID##*/}"
 
 IMG="yookuda/blast_plus"
 
-docker run \
+/bin/docker run \
     --volumes-from $CONTAINER_ID \
     -v $RRNA_DB_DIR:/db \
     --rm \

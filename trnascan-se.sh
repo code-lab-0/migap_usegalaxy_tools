@@ -8,7 +8,7 @@ CONTAINER_ID="${CONTAINER_ID##*/}"
 
 IMG="yookuda/trnascan_se"
 
-docker run \
+/bin/docker run \
     --volumes-from $CONTAINER_ID \
     --rm \
     $IMG \

@@ -24,29 +24,12 @@ shift
 OUTPUT7=$1
 shift
 
-#INPUT_FNAME1="${INPUT1##*/}"
-#INPUT_FNAME2="${INPUT2##*/}"
-#INPUT_FNAME3="${INPUT3##*/}"
-#INPUT_FNAME4="${INPUT4##*/}"
-#INPUT_FNAME5="${INPUT5##*/}"
-#DATA_DIR_TMP="${INPUT1%/*}"
-
 CONTAINER_ID=`cat /proc/1/cpuset`
 CONTAINER_ID="${CONTAINER_ID##*/}"
 
-#DATA_DIR="/tmp/files/${CONTAINER_ID}/${DATA_DIR_TMP##*/}"
-
-#OUTPUT_FNAME1="${OUTPUT1##*/}"
-#OUTPUT_FNAME2="${OUTPUT2##*/}"
-#OUTPUT_FNAME3="${OUTPUT3##*/}"
-#OUTPUT_FNAME4="${OUTPUT4##*/}"
-#OUTPUT_FNAME5="${OUTPUT5##*/}"
-#OUTPUT_FNAME6="${OUTPUT6##*/}"
-#OUTPUT_FNAME7="${OUTPUT7##*/}"
-
 IMG="yookuda/merge"
 
-docker run \
+/bin/docker run \
     --volumes-from $CONTAINER_ID \
     --rm \
     $IMG \
