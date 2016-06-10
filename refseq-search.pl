@@ -73,7 +73,7 @@ sub set_pref {
     # ゲートウェイがない場合は$pref{'REMOTE_DATA_DIR'}と同じ値を入れる。
     $pref{'GW_DATA_DIR'} = "/home/$pref{'USER'}/gw_dir/$CONTAINER_ID";
 
-    $pref{'SCRIPT_PREFIX'} = 'cog-search';
+    $pref{'SCRIPT_PREFIX'} = 'refseq-search';
 
     # 1ジョブ当たりの配列数
     $pref{'SPRIT_SEQ_NUM'} = 100;
