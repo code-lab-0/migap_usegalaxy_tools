@@ -62,3 +62,4 @@ mv ${OUTPUT1}-a.embl $OUTPUT2
 mv ${OUTPUT1}-a.annt $OUTPUT3
 mv ${OUTPUT1}-a.csv $OUTPUT4
 mv ${OUTPUT1}-a.ddbj $OUTPUT5
+
