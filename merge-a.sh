@@ -28,7 +28,7 @@ COG_DB_DIR="/home/okuda/data/db/cog/20030417"
 REFSEQ_DB_DIR="/home/okuda/data/db/refseq_protein/20140911"
 
 WHOG="whog"
-MYVA="myva"
+MYVA="myva_gb"
 
 GPFF="microbial.*.protein.gpff.gz"
 
