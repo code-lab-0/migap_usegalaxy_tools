@@ -172,23 +172,25 @@ sub create_remote_command_script {
     my $script = "${INPUT}.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
 
     open SCRIPT, ">$script" or die;
+    print SCRIPT <<"SCRIPT";
+#!/bin/sh
+#$ -S /bin/sh
+#$ -cwd
+docker run \\
+    -v $REMOTE_DATA_DIR:/data \\
+    -v $REMOTE_BLAST_DB_DIR:/db \\
+    --rm \\
+    $IMG \\
+    /usr/local/bin/blastp \\
+        -db /db/$BLAST_DB \\
+        -query /data/$INPUT_FNAME.${SCRIPT_PREFIX}_${file_count}_${total_file_count} \\
+        -out /data/$OUTPUT_FNAME.${file_count} \\
+        -outfmt "0" \\
+        $OPTIONS \\
+        -num_threads $THREAD_NUM
+SCRIPT
 
-    print SCRIPT '#!/bin/sh', "\n";
-    print SCRIPT '#$ -S /bin/sh', "\n";
-    print SCRIPT '#$ -cwd', "\n";
-    print SCRIPT 'docker run \\', "\n";
-    print SCRIPT "-v $REMOTE_DATA_DIR:/data \\", "\n";
-    print SCRIPT "-v $REMOTE_BLAST_DB_DIR:/db \\", "\n";
-    print SCRIPT "--rm \\", "\n";
-    print SCRIPT "$IMG \\", "\n";
-    print SCRIPT "/usr/local/bin/blastp \\", "\n";
-    print SCRIPT "-db /db/$BLAST_DB \\", "\n";
-    print SCRIPT "-query /data/$INPUT_FNAME.${SCRIPT_PREFIX}_${file_count}_${total_file_count} \\", "\n";
-    print SCRIPT "-out /data/$OUTPUT_FNAME.${file_count} \\", "\n";
-    print SCRIPT '-outfmt "0" \\', "\n";
-    print SCRIPT "$OPTIONS \\", "\n";
-    print SCRIPT "-num_threads $THREAD_NUM", "\n";
-
+    close SCRIPT;
     my $ret2 = chmod 0755, $script;
 }
 
