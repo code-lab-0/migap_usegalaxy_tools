@@ -280,7 +280,7 @@ sub post_job {
         my $roop_count = 0;
         while (!$job_id) {
             my $stdout_buf = &check_cmd_result($cmd, "post job $file_count");
-            my $job_id = join('', @$stdout_buf);
+            $job_id = join('', @$stdout_buf);
             my $job_id_json = decode_json($job_id);
             if ($job_id_json->{"jobid"}) {
                 $job_id = $job_id_json->{"jobid"};
