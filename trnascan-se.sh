@@ -10,7 +10,6 @@ IMG="yookuda/trnascan_se"
 
 /bin/docker run \
     --volumes-from $CONTAINER_ID \
-    --rm \
     $IMG \
         tRNAscan-SE \
             $OPTION \

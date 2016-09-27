@@ -10,7 +10,6 @@ IMG="yookuda/rnammer-1.2:1.0"
 
 /bin/docker run \
     --volumes-from $CONTAINER_ID \
-    --rm \
     $IMG \
         rnammer \
             $OPTION \

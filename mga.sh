@@ -10,6 +10,5 @@ IMG="yookuda/mga"
 
 /bin/docker run \
     --volumes-from $CONTAINER_ID \
-    --rm \
     $IMG \
         mga $INPUT $OPTION > $OUTPUT \

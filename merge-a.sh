@@ -46,7 +46,6 @@ cp $INPUT7 ${OUTPUT1}.csv
     --volumes-from $CONTAINER_ID \
     -v $COG_DB_DIR:/cog \
     -v $REFSEQ_DB_DIR:/refseq \
-    --rm \
     $IMG \
         perl /scripts/merge-a.pl \
             --cog $INPUT1 \
