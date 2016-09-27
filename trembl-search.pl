@@ -276,15 +276,20 @@ sub post_job {
         my $script = "$REMOTE_DATA_DIR/$INPUT_FNAME.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
         my $job_data = "{\"remoteCommand\":\"$script\", \"args\":[], \"nativeSpecification\":\"-pe def_slot $THREAD_NUM\"}";
         my $cmd = "curl -s -X POST -H 'Content-Type:application/json' http://$UGE_REST_URL:$UGE_REST_PORT/jobs -d '$job_data' -u $USER:$PW";
-        my $stdout_buf = &check_cmd_result($cmd, "post job $file_count");
 
-        my $job_id = join('', @$stdout_buf);
-        my $job_id_json = decode_json($job_id);
-        if ($job_id_json->{"jobid"}) {
-            $job_id = $job_id_json->{"jobid"};
-        } else {
-            print STDERR "$job_id\n";
-            exit;
+        my $job_id = "";
+        while (!$job_id) {
+            my $stdout_buf = &check_cmd_result($cmd, "post job $file_count");
+            my $job_id = join('', @$stdout_buf);
+            my $job_id_json = decode_json($job_id);
+            if ($job_id_json->{"jobid"}) {
+                $job_id = $job_id_json->{"jobid"};
+            } else {
+                #print STDERR "$job_id\n";
+                #exit;
+                $job_id = "";
+                sleep(1)
+            }
         }
         if ($job_id =~ /^\d+$/) {
             push @job_ids, $job_id;
