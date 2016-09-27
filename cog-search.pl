@@ -278,6 +278,7 @@ sub post_job {
         my $cmd = "curl -s -X POST -H 'Content-Type:application/json' http://$UGE_REST_URL:$UGE_REST_PORT/jobs -d '$job_data' -u $USER:$PW";
 
         my $job_id = "";
+        my $roop_count = 0;
         while (!$job_id) {
             my $stdout_buf = &check_cmd_result($cmd, "post job $file_count");
             my $job_id = join('', @$stdout_buf);
@@ -285,10 +286,13 @@ sub post_job {
             if ($job_id_json->{"jobid"}) {
                 $job_id = $job_id_json->{"jobid"};
             } else {
-                #print STDERR "$job_id\n";
-                #exit;
+                ++$roop_count;
+                if ($roop_count > 9) {
+                    print STDERR "$job_id\n";
+                    exit;
+                }
                 $job_id = "";
-                sleep(1)
+                sleep(10)
             }
         }
         if ($job_id =~ /^\d+$/) {
