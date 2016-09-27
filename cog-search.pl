@@ -299,7 +299,7 @@ sub post_job {
             push @job_ids, $job_id;
         }
         ++$file_count;
-        select(undef, undef, undef, 0.2);
+        select(undef, undef, undef, 0.5);
     }
     return \@job_ids;
 }
