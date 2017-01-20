@@ -13,6 +13,7 @@ IMG="yookuda/blast_plus"
 /bin/docker run \
     --volumes-from $CONTAINER_ID \
     -v $RRNA_DB_DIR:/db \
+    --rm \
     $IMG \
         blastn \
             -db /db/16srna \

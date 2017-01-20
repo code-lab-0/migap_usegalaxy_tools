@@ -31,6 +31,7 @@ IMG="yookuda/merge"
 
 /bin/docker run \
     --volumes-from $CONTAINER_ID \
+    --rm \
     $IMG \
         perl /scripts/merge.pl \
             -f $INPUT1 \

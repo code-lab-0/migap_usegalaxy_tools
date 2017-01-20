@@ -15,6 +15,7 @@ IMG="yookuda/fa4tr"
 
 /bin/docker run \
     --volumes-from $CONTAINER_ID \
+    --rm \
     $IMG \
     perl /scripts/fa4tr.pl \
         --fa $INPUT1 \
