@@ -66,7 +66,7 @@ sub set_pref {
     $pref{'REMOTE_DATA_DIR'} = "/home/$pref{'USER'}/gw_dir/$CONTAINER_ID";
 
     # galaxyコンテナからUGE REST ServiceにアクセスするためのURL
-    $pref{'UGE_REST_URL'} = '172.19.24.113';
+    $pref{'UGE_REST_URL'} = '172.19.24.112';
     $pref{'UGE_REST_PORT'} = '8182';
 
     # UGEの前にゲートウェイがある場合に$pref{'REMOTE_DATA_DIR'}がマウントされているディレクトリ
