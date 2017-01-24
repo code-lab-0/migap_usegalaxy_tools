@@ -40,8 +40,7 @@ sub set_pref {
 
     $pref{'INPUT'} = shift @ARGV;
     $pref{'OUTPUT'} = shift @ARGV;
-    $pref{'USER'} = shift @ARGV;
-    $pref{'PW'} = shift @ARGV;
+    $pref{'MAIL'} = shift @ARGV;
     $pref{'OPTIONS'} = join(" ", @ARGV);
 
     my $INPUT_FNAME = $pref{'INPUT'};
@@ -61,6 +60,11 @@ sub set_pref {
     # UGEで実行されるBLAST検索で使用するBLAST DB    
     $pref{'REMOTE_BLAST_DB_DIR'} = '/home/okuda/data/db/cog/20030417';
     $pref{'BLAST_DB'} = 'myva';
+
+    # user, password取得用SQLite DB
+    $pref{'SQLITE_DB'} = '/user.sqlite3';
+
+    ($pref{'USER'}, $pref{'PW'} = &get_pw($pref{'MAIL'}, $pref{'SQLITE_DB'});
 
     # UGEで実行されるジョブのデータ・スクリプトを置くディレクトリ
     $pref{'REMOTE_DATA_DIR'} = "/home/$pref{'USER'}/gw_dir/$CONTAINER_ID";
@@ -85,6 +89,17 @@ sub set_pref {
     $pref{'IMG'} = 'yookuda/blast_plus';
 
     return $pref_ref;
+}
+
+sub get_pw {
+    my $mail = $_[0];
+    my $sqlite_db = $_[1];
+    my $db = DBI->connect("dbi:SQLite:$sqlite_db",'','');
+    my $st = $db->prepare("select name, password from user where email = '$mail'");
+    $st->execute();
+    while (my $row = $st->fetch) {
+        return @$row;
+    }
 }
 
 sub check_cmd_result {
