@@ -174,8 +174,8 @@ sub create_remote_command_script {
     open SCRIPT, ">$script" or die;
     print SCRIPT <<"SCRIPT";
 #!/bin/sh
-#$ -S /bin/sh
-#$ -cwd
+#\$ -S /bin/sh
+#\$ -cwd
 docker run \\
     -v $REMOTE_DATA_DIR:/data \\
     -v $REMOTE_BLAST_DB_DIR:/db \\
