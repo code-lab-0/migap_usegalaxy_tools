@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use JSON qw/decode_json/;
 use IPC::Cmd qw/can_run run run_forked/;
+use DBI;
 
 &main;
 exit;
