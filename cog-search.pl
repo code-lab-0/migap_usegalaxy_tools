@@ -63,8 +63,7 @@ sub set_pref {
 
     # user, password取得用SQLite DB
     $pref{'SQLITE_DB'} = '/user.sqlite3';
-
-    ($pref{'USER'}, $pref{'PW'} = &get_pw($pref{'MAIL'}, $pref{'SQLITE_DB'});
+    ($pref{'USER'}, $pref{'PW'}) = &get_pw($pref{'MAIL'}, $pref{'SQLITE_DB'});
 
     # UGEで実行されるジョブのデータ・スクリプトを置くディレクトリ
     $pref{'REMOTE_DATA_DIR'} = "/home/$pref{'USER'}/gw_dir/$CONTAINER_ID";
