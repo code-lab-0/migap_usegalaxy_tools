@@ -21,6 +21,9 @@ sub main {
     # post job
     my $job_ids_ref = &post_job($total_file_count, $pref_ref);
 
+    # record process id and job ids
+    &record_job_ids($job_ids_ref, $pref_ref);
+
     # check job state
     my $job_state = 1;
     while ($job_state) {
@@ -30,6 +33,9 @@ sub main {
 
     # copy files from UGE cluster
     &get_result($total_file_count, $pref_ref);
+
+    # 自身のprocess idとjob idのリストをデータベースから削除
+    &remove_job_ids($job_ids_ref, $pref_ref);
 
 #    &remove_files($total_file_count);
 }
@@ -88,7 +94,45 @@ sub set_pref {
     # BLAST dockerイメージ
     $pref{'IMG'} = 'yookuda/blast_plus';
 
+    # 自身のプロセスID
+    $pref{'MY_PROC'} = $$;
+
+    # 自身のプロセスIDとUGEのジョブIDの記録先
+    $pref{'JOB_IDS_RECORD'} = "/tmp/job_ids_record.sqlite3";
+
     return $pref_ref;
+}
+
+sub record_job_ids {
+    my $job_ids_ref = $_[0];
+    my $pref_ref = $_[1];
+    my $MY_PROC = $$pref_ref{'MY_PROC'};
+    my $JOB_IDS_RECORD = $$pref_ref{'JOB_IDS_RECORD'};
+    my $USER = $$pref_ref{'USER'};
+    my $PW = $$pref_ref{'PW'};
+    my @JOB_IDS = @$job_ids_ref;
+
+    my $dbh = DBI->connect("dbi:SQLite:$JOB_IDS_RECORD", '','');
+    $dbh->do('BEGIN IMMEDIATE');
+    my $sth = $dbh->prepare("INSERT INTO proc__job_ids__user__password VALUES('$MY_PROC', '@JOB_IDS', '$USER', '$PW')");
+    $sth->execute();
+    $dbh->commit;
+}
+
+sub remove_job_ids {
+    my $job_ids_ref = $_[0];
+    my $pref_ref = $_[1];
+    my $MY_PROC = $$pref_ref{'MY_PROC'};
+    my $JOB_IDS_RECORD = $$pref_ref{'JOB_IDS_RECORD'};
+    my $USER = $$pref_ref{'USER'};
+    my $PW = $$pref_ref{'PW'};
+    my @JOB_IDS = @$job_ids_ref;
+
+    my $dbh = DBI->connect("dbi:SQLite:$JOB_IDS_RECORD", '','');
+    $dbh->do('BEGIN IMMEDIATE');
+    my $sth = $dbh->prepare("DELETE FROM proc__job_ids__user__password WHERE proc = '$MY_PROC'");
+    $sth->execute();
+    $dbh->commit;
 }
 
 sub get_pw {
@@ -123,6 +167,7 @@ sub check_cmd_result {
 sub split_fasta_file {
     my $pref_ref = $_[0];
     my $INPUT = $$pref_ref{'INPUT'};
+    my $OUTPUT = $$pref_ref{'OUTPUT'};
     my $SPRIT_SEQ_NUM = $$pref_ref{'SPRIT_SEQ_NUM'};
     my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
 
@@ -144,7 +189,7 @@ sub split_fasta_file {
     $seq_count = 0;
 
     open DATA, $INPUT or die;
-    open OUT, ">$INPUT.${SCRIPT_PREFIX}_${file_count}_${total_file_count}" or die;
+    open OUT, ">$OUTPUT.${SCRIPT_PREFIX}_${file_count}_${total_file_count}" or die;
 
     &create_remote_command_script($file_count, $total_file_count, $pref_ref);
 
@@ -155,7 +200,7 @@ sub split_fasta_file {
                 close OUT;
                 ++$file_count;
                 $seq_count = 0;
-                open OUT, ">$INPUT.${SCRIPT_PREFIX}_${file_count}_${total_file_count}" or die;
+                open OUT, ">$OUTPUT.${SCRIPT_PREFIX}_${file_count}_${total_file_count}" or die;
 
                 &create_remote_command_script($file_count, $total_file_count, $pref_ref);
 
@@ -174,6 +219,7 @@ sub create_remote_command_script {
     my $pref_ref = $_[2];
 
     my $INPUT = $$pref_ref{'INPUT'};
+    my $OUTPUT = $$pref_ref{'OUTPUT'};
     my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
     my $REMOTE_DATA_DIR = $$pref_ref{'REMOTE_DATA_DIR'};
     my $REMOTE_BLAST_DB_DIR = $$pref_ref{'REMOTE_BLAST_DB_DIR'};
@@ -184,7 +230,7 @@ sub create_remote_command_script {
     my $OPTIONS = $$pref_ref{'OPTIONS'};
     my $THREAD_NUM = $$pref_ref{'THREAD_NUM'};
 
-    my $script = "${INPUT}.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
+    my $script = "${OUTPUT}.${SCRIPT_PREFIX}_${file_count}_${total_file_count}.sh";
 
     open SCRIPT, ">$script" or die;
     print SCRIPT <<"SCRIPT";
@@ -196,13 +242,15 @@ docker run \\
     -v $REMOTE_BLAST_DB_DIR:/db \\
     --rm \\
     $IMG \\
+    sh -c "\\
+    cat /proc/1/cpuset; \\
     /usr/local/bin/blastp \\
         -db /db/$BLAST_DB \\
-        -query /data/$INPUT_FNAME.${SCRIPT_PREFIX}_${file_count}_${total_file_count} \\
+        -query /data/$OUTPUT_FNAME.${SCRIPT_PREFIX}_${file_count}_${total_file_count} \\
         -out /data/$OUTPUT_FNAME.${file_count} \\
-        -outfmt "0" \\
+        -outfmt '0' \\
         $OPTIONS \\
-        -num_threads $THREAD_NUM
+        -num_threads $THREAD_NUM"
 SCRIPT
 
     close SCRIPT;
@@ -219,7 +267,7 @@ sub scp_files {
     my $UGE_REST_URL = $$pref_ref{'UGE_REST_URL'};
     my $GW_DATA_DIR = $$pref_ref{'GW_DATA_DIR'};
     my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
-    my $INPUT = $$pref_ref{'INPUT'};
+    my $OUTPUT = $$pref_ref{'OUTPUT'};
 
     # create gateway data directory
     my $cmd1 = "sh -c \"sshpass -p '$PW' ssh -o StrictHostKeyChecking=no $USER\@$UGE_REST_URL 'if [ ! -e $GW_DATA_DIR ]; then mkdir -p $GW_DATA_DIR ; fi'\"";
@@ -231,8 +279,8 @@ sub scp_files {
     my $input_file;
 
     while ($i <= $total_file_count) {
-        $script = "$INPUT.$SCRIPT_PREFIX.${i}_${total_file_count}.sh";
-        $input_file = "$INPUT.${SCRIPT_PREFIX}_${i}_${total_file_count}";
+        $script = "$OUTPUT.${SCRIPT_PREFIX}_${i}_${total_file_count}.sh";
+        $input_file = "$OUTPUT.${SCRIPT_PREFIX}_${i}_${total_file_count}";
 
         # copy remote command script
         my $cmd2 = "sh -c \"sshpass -p '$PW' scp -o StrictHostKeyChecking=no -p $script $USER\@$UGE_REST_URL:$GW_DATA_DIR\"";
@@ -252,7 +300,7 @@ sub remove_files {
     my $USER = $$pref_ref{'USER'};
     my $PW = $$pref_ref{'PW'};
     my $UGE_REST_URL = $$pref_ref{'UGE_REST_URL'};
-    my $INPUT_FNAME = $$pref_ref{'INPUT_FNAME'};
+    my $OUTPUT_FNAME = $$pref_ref{'OUTPUT_FNAME'};
     my $GW_DATA_DIR = $$pref_ref{'GW_DATA_DIR'};
     my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
 
@@ -261,10 +309,10 @@ sub remove_files {
     my $input_file;
 
     while ($i <= $total_file_count) {
-        my $cmd1 = "sh -c \"sshpass -p '$PW' ssh -o StrictHostKeyChecking=no $USER\@$UGE_REST_URL 'rm $GW_DATA_DIR/$INPUT_FNAME.$SCRIPT_PREFIX.${i}_${total_file_count}.sh'\"";
+        my $cmd1 = "sh -c \"sshpass -p '$PW' ssh -o StrictHostKeyChecking=no $USER\@$UGE_REST_URL 'rm $GW_DATA_DIR/$OUTPUT_FNAME.${SCRIPT_PREFIX}_${i}_${total_file_count}.sh'\"";
         &check_cmd_result($cmd1, "remove gw script file $i");
 
-        my $cmd2 = "sh -c \"sshpass -p '$PW' ssh -o StrictHostKeyChecking=no $USER\@$UGE_REST_URL 'rm $GW_DATA_DIR/$INPUT_FNAME.${SCRIPT_PREFIX}_${i}_${total_file_count}'\"";
+        my $cmd2 = "sh -c \"sshpass -p '$PW' ssh -o StrictHostKeyChecking=no $USER\@$UGE_REST_URL 'rm $GW_DATA_DIR/$OUTPUT_FNAME.${SCRIPT_PREFIX}_${i}_${total_file_count}'\"";
         &check_cmd_result($cmd2, "remove gw data file $i");
 
         ++$i;
@@ -277,7 +325,7 @@ sub post_job {
     my $pref_ref = $_[1];
 
     my $REMOTE_DATA_DIR = $$pref_ref{'REMOTE_DATA_DIR'};
-    my $INPUT_FNAME = $$pref_ref{'INPUT_FNAME'};
+    my $OUTPUT_FNAME = $$pref_ref{'OUTPUT_FNAME'};
     my $SCRIPT_PREFIX = $$pref_ref{'SCRIPT_PREFIX'};
     my $UGE_REST_URL = $$pref_ref{'UGE_REST_URL'};
     my $UGE_REST_PORT = $$pref_ref{'UGE_REST_PORT'};
@@ -288,7 +336,7 @@ sub post_job {
     my $file_count = 0;
     my @job_ids = ();
     while ($file_count <= $total_file_count) {
-        my $script = "$REMOTE_DATA_DIR/$INPUT_FNAME.$SCRIPT_PREFIX.${file_count}_${total_file_count}.sh";
+        my $script = "$REMOTE_DATA_DIR/$OUTPUT_FNAME.${SCRIPT_PREFIX}_${file_count}_${total_file_count}.sh";
         my $job_data = "{\"remoteCommand\":\"$script\", \"args\":[], \"nativeSpecification\":\"-pe def_slot $THREAD_NUM\"}";
         my $cmd = "curl -s -X POST -H 'Content-Type:application/json' http://$UGE_REST_URL:$UGE_REST_PORT/jobs -d '$job_data' -u $USER:$PW";
 
