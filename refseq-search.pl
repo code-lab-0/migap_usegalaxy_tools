@@ -12,8 +12,11 @@ exit;
 sub main {
     my $pref_ref = &set_pref;
 
+    # ジョブ実行先でのユーザーのuid, gidを取得
+    my($uid, $gid) = &get_uid($pref_ref);
+
     # split fasta file and create job scripts.
-    my $total_file_count = &split_fasta_file($pref_ref);
+    my $total_file_count = &split_fasta_file($uid, $gid, $pref_ref);
 
     # copy files to UGE cluster
     &scp_files($total_file_count, $pref_ref);
@@ -71,7 +74,7 @@ sub set_pref {
     # user, password取得用SQLite DB
     $pref{'SQLITE_DB'} = '/user.sqlite3';
     ($pref{'USER'}, $pref{'PW'}) = &get_pw($pref{'MAIL'}, $pref{'SQLITE_DB'});
-    
+
     # UGEで実行されるジョブのデータ・スクリプトを置くディレクトリ
     $pref{'REMOTE_DATA_DIR'} = "/home/$pref{'USER'}/gw_dir/$CONTAINER_ID";
 
@@ -101,6 +104,20 @@ sub set_pref {
     $pref{'JOB_IDS_RECORD'} = "/tmp/job_ids_record.sqlite3";
 
     return $pref_ref;
+}
+
+sub get_uid {
+    my $pref_ref = $_[0];
+    my $UGE_REST_URL = $$pref_ref{'UGE_REST_URL'};
+    my $USER = $$pref_ref{'USER'};
+    my $PW = $$pref_ref{'PW'};
+
+    my $cmd = "sh -c \"sshpass -p '$PW' ssh -o StrictHostKeyChecking=no $USER\@$UGE_REST_URL 'id $USER'\"";
+    my $stdout_buf = &check_cmd_result($cmd, "get uid");
+    my $stdout = join('', @$stdout_buf);
+    if ($stdout =~ /uid=(\d+).* gid=(\d+)/) {
+        return($1, $2);
+    }
 }
 
 sub record_job_ids {
@@ -165,7 +182,9 @@ sub check_cmd_result {
 
 # 入力FASTAファイルを$pref{'SPRIT_SEQ_NUM'}ずつ分割する。
 sub split_fasta_file {
-    my $pref_ref = $_[0];
+    my $uid = $_[0];
+    my $gid = $_[1];
+    my $pref_ref = $_[2];
     my $INPUT = $$pref_ref{'INPUT'};
     my $OUTPUT = $$pref_ref{'OUTPUT'};
     my $SPRIT_SEQ_NUM = $$pref_ref{'SPRIT_SEQ_NUM'};
@@ -191,7 +210,7 @@ sub split_fasta_file {
     open DATA, $INPUT or die;
     open OUT, ">$OUTPUT.${SCRIPT_PREFIX}_${file_count}_${total_file_count}" or die;
 
-    &create_remote_command_script($file_count, $total_file_count, $pref_ref);
+    &create_remote_command_script($file_count, $total_file_count, $uid, $gid, $pref_ref);
 
     while (<DATA>) {
         if (/^>/) {
@@ -202,7 +221,7 @@ sub split_fasta_file {
                 $seq_count = 0;
                 open OUT, ">$OUTPUT.${SCRIPT_PREFIX}_${file_count}_${total_file_count}" or die;
 
-                &create_remote_command_script($file_count, $total_file_count, $pref_ref);
+                &create_remote_command_script($file_count, $total_file_count, $uid, $gid, $pref_ref);
 
             }
         }
@@ -216,7 +235,9 @@ sub split_fasta_file {
 sub create_remote_command_script {
     my $file_count = $_[0];
     my $total_file_count = $_[1];
-    my $pref_ref = $_[2];
+    my $uid = $_[2];
+    my $gid = $_[3];
+    my $pref_ref = $_[4];
 
     my $INPUT = $$pref_ref{'INPUT'};
     my $OUTPUT = $$pref_ref{'OUTPUT'};
@@ -244,7 +265,9 @@ docker run \\
     $IMG \\
     sh -c "\\
     cat /proc/1/cpuset; \\
-    /usr/local/bin/blastp \\
+    groupadd -g $gid galaxy;
+    useradd -u $uid -g $gid galaxy; \\
+    sudo -u galaxy /usr/local/bin/blastp \\
         -db /db/$BLAST_DB \\
         -query /data/$OUTPUT_FNAME.${SCRIPT_PREFIX}_${file_count}_${total_file_count} \\
         -out /data/$OUTPUT_FNAME.${file_count} \\
