@@ -21,13 +21,10 @@ sub main {
     # copy files to UGE cluster
     &scp_files($total_file_count, $pref_ref);
 
-    # post job
+    # UGEにジョブを投入
     my $job_ids_ref = &post_job($total_file_count, $pref_ref);
 
-    # record process id and job ids
-    &record_job_ids($job_ids_ref, $pref_ref);
-
-    # check job state
+    # UGEに投入したジョブがすべて終了するまで待機
     my $job_state = 1;
     while ($job_state) {
         sleep(60);
@@ -106,6 +103,7 @@ sub set_pref {
     return $pref_ref;
 }
 
+# UGEクラスター上でのGalaxy使用者のUID, GIDを取得する。
 sub get_uid {
     my $pref_ref = $_[0];
     my $UGE_REST_URL = $$pref_ref{'UGE_REST_URL'};
@@ -120,6 +118,7 @@ sub get_uid {
     }
 }
 
+# SQLite DBに本スクリプトのPID, UGEに投入したジョブのJOB IDを記録する。
 sub record_job_ids {
     my $job_ids_ref = $_[0];
     my $pref_ref = $_[1];
@@ -131,11 +130,17 @@ sub record_job_ids {
 
     my $dbh = DBI->connect("dbi:SQLite:$JOB_IDS_RECORD", '','');
     $dbh->do('BEGIN IMMEDIATE');
-    my $sth = $dbh->prepare("INSERT INTO proc__job_ids__user__password VALUES('$MY_PROC', '@JOB_IDS', '$USER', '$PW')");
-    $sth->execute();
+    if ($#JOB_IDS < 0) {
+        my $sth = $dbh->prepare("INSERT INTO proc__job_ids__user__password VALUES('$MY_PROC', '@JOB_IDS', '$USER', '$PW')");
+        $sth->execute();
+    } else {
+        my $sth = $dbh->prepare("UPDATE proc__job_ids__user__password SET job_ids = '@JOB_IDS' WHERE proc = '$MY_PROC'");
+        $sth->execute();
+    }
     $dbh->commit;
 }
 
+# SQLite DBから本スクリプトのPID, UGEに投入したジョブのJOB IDを削除する。
 sub remove_job_ids {
     my $job_ids_ref = $_[0];
     my $pref_ref = $_[1];
@@ -152,6 +157,7 @@ sub remove_job_ids {
     $dbh->commit;
 }
 
+# SQLite DBからGalaxy使用者のe-mailアドレスをキーにしてユーザー名、パスワードを取得する。
 sub get_pw {
     my $mail = $_[0];
     my $sqlite_db = $_[1];
@@ -163,6 +169,7 @@ sub get_pw {
     }
 }
 
+# 実行した外部コマンドの標準出力・標準エラーを取得する。
 sub check_cmd_result {
     my $cmd = $_[0];
     my $label = $_[1];
@@ -358,6 +365,9 @@ sub post_job {
 
     my $file_count = 0;
     my @job_ids = ();
+    # SQLite DBにデータを追加
+    &record_job_ids(\@job_ids, $pref_ref);
+
     while ($file_count <= $total_file_count) {
         my $script = "$REMOTE_DATA_DIR/$OUTPUT_FNAME.${SCRIPT_PREFIX}_${file_count}_${total_file_count}.sh";
         my $job_data = "{\"remoteCommand\":\"$script\", \"args\":[], \"nativeSpecification\":\"-pe def_slot $THREAD_NUM\"}";
@@ -383,6 +393,8 @@ sub post_job {
         }
         if ($job_id =~ /^\d+$/) {
             push @job_ids, $job_id;
+            # SQLite DBのデータを更新
+            &record_job_ids(\@job_ids, $pref_ref);
         }
         ++$file_count;
         sleep(5);
