@@ -12,6 +12,9 @@ exit;
 sub main {
     my $pref_ref = &set_pref;
 
+    # remove_deleted_jobs.pyの起動チェック
+    &start_rdj($pref_ref);
+
     # ジョブ実行先でのユーザーのuid, gidを取得
     my($uid, $gid) = &get_uid($pref_ref);
 
@@ -100,7 +103,35 @@ sub set_pref {
     # 自身のプロセスIDとUGEのジョブIDの記録先
     $pref{'JOB_IDS_RECORD'} = "/tmp/job_ids_record.sqlite3";
 
+    # remove_deleted_jobs.pyのパス情報
+    $pref{'RDJ_PATH'} = "/tmp/remove_deleted_jobs/";
+    $pref{'RDJ_PID_FILE'} = "remove_deleted_jobs.pid";
+    $pref{'RDJ_SCRIPT'} = "remove_deleted_jobs.py";
+
     return $pref_ref;
+}
+
+# remove_deleted_jobs.pyの起動を確認し、起動していない場合は起動する。
+sub start_rdj {
+    my $pref_ref = $_[0];
+    my $RDJ_PATH = $$pref_ref{'RDJ_PATH'};
+    my $RDJ_PID_FILE = $$pref_ref{'RDJ_PID_FILE'};
+    my $RDJ_SCRIPT = $$pref_ref{'RDJ_SCRIPT'};
+
+    unless (-e $RDJ_PATH . $RDJ_PID_FILE) {
+        # remove_deleted_jobs.pyの起動
+        system("python3 $RDJ_PATH$RDJ_SCRIPT");
+    } else {
+        open(my $fh, '<' . $RDJ_PATH . $RDJ_PID_FILE) or die;
+        my $rdj_pid = <$fh>;
+        chomp $rdj_pid;
+        my $result = `ps h $rdj_pid`;
+        unless ($result) {
+            unlink "$RDJ_PATH$RDJ_PID_FILE";
+            # remove_deleted_jobs.pyの起動
+            system("python3 $RDJ_PATH$RDJ_SCRIPT");
+        }
+    }
 }
 
 # UGEクラスター上でのGalaxy使用者のUID, GIDを取得する。
